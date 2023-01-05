@@ -17,65 +17,13 @@ export class DiscordBot {
     // Set the path of the commands folder.
     this.commandsPath = path.join(__dirname, '..', 'dslash');
 
-    // Create a new client instance.
     this.client = new Client({
       intents: [
-        // GatewayIntentBits.DirectMessages
         GatewayIntentBits.Guilds,
         GatewayIntentBits.GuildMessages,
         GatewayIntentBits.MessageContent,
       ]
     });
-
-    // Ready message.
-    this.client.once(Events.ClientReady, async (c: Client) => {
-      console.log(`Ready! Logged in as ${c.user?.tag}`);
-      // const channel: TextChannel = await this.client.channels.fetch('1058907686399397918') as TextChannel;
-      // channel.send('another test wo');
-    });
-
-    this.client.on(Events.MessageCreate, async (m: Message) => {
-      // return;
-      // console.log(m);
-      if (m.author.id == '1058883306411806721') { // Ignore the bots own messages.
-        return;
-      }
-      if (m.channelId == '1058907686399397918' && m.author.id == "408544448172261377" && m.cleanContent == "redeploy") {
-        m.reply('You got it! Contacting the Draconequus\' API...');
-        this.syncSlashCommands(m);
-      }
-      if (m.channelId == '1058907686399397918' && m.author.id == "408544448172261377" && m.cleanContent == "bedtime") {
-        m.reply('Goodnight 💜. Disconnecting bot and shutting down services.').then(() => {
-          process.exit(1);
-        });
-      }
-      // if (m.channelId == '1058907686399397918') {
-      //   const payload = JSON.stringify(m, null, 4);
-      //   m.reply(`I heard: \`${m.content}\`\nPayload:\n\`\`\`${payload}\`\`\``);
-      // }
-    });
-
-    // Listen for interactions.
-    this.client.on(Events.InteractionCreate, async (interaction: Interaction) => {
-      console.log('an interaction!');
-
-      if (!interaction.isChatInputCommand()) return;
-
-      const command = this.commands.get(interaction.commandName);
-
-      if (!command) {
-        console.error(`No command matching ${interaction.commandName} was found.`);
-        return;
-      }
-
-      try {
-        await command.execute(interaction);
-      } catch (error) {
-        console.error(error);
-        await interaction.reply({ content: 'There was an error while executing this command!', ephemeral: true });
-      }
-    });
-
   }
 
   /**
@@ -83,6 +31,7 @@ export class DiscordBot {
    */
   public run(): void {
     this.loadCommands();
+    this.registerEvents();
     this.login();
   }
 
@@ -112,6 +61,45 @@ export class DiscordBot {
       }
       console.log('loaded ', filePath);
 
+    }
+  }
+
+  /**
+   * Registers event listeners and binds them to their respective handlers.
+   */
+  protected registerEvents() {
+    // Ready message.
+    this.client.once(Events.ClientReady, async (c: Client) => {
+      console.log(`Ready! Logged in as ${c.user?.tag}`);
+    });
+
+    this.client.on(Events.MessageCreate, async (m: Message) => {
+      // Intentionally left blank. Apparently adding this listener helps make the interaction event below work properly.
+    });
+
+    // Listen for slash commands.
+    this.client.on(Events.InteractionCreate, this.handleSlashCommand.bind(this));
+
+  }
+
+  /**
+  * Handles interactions with the bot. Generally this is a slash command.
+  */
+  protected async handleSlashCommand(interaction: Interaction) {
+    if (!interaction.isChatInputCommand()) return;
+
+    const command = this.commands.get(interaction.commandName);
+
+    if (!command) {
+      console.error(`No command matching ${interaction.commandName} was found.`);
+      return;
+    }
+
+    try {
+      await command.execute(interaction);
+    } catch (error) {
+      console.error(error);
+      await interaction.reply({ content: 'There was an error while executing this command!', ephemeral: true });
     }
   }
 
