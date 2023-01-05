@@ -1,7 +1,8 @@
 {
   "dependencies": {
     "@caspertech/node-metaverse": "^0.5.52",
-    "discord.js": "^14.7.1"
+    "discord.js": "^14.7.1",
+    "dotenv": "^16.0.3"
   },
   "devDependencies": {
     "@types/node": "^18.11.18",
