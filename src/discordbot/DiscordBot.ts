@@ -15,7 +15,7 @@ export class DiscordBot {
 
   constructor() {
     // Set the path of the commands folder.
-    this.commandsPath = path.join(__dirname, '..', 'dslash');
+    this.commandsPath = path.join(__dirname, 'commands');
 
     this.client = new Client({
       intents: [
@@ -43,12 +43,19 @@ export class DiscordBot {
   }
 
   /**
+   * Gets a list of all command files from the commands directory.
+   */
+  protected getCommandFiles() {
+    return fs.readdirSync(this.commandsPath).filter(file => file.endsWith('.ts'));
+  }
+
+  /**
    * Loads the commands from the command folder, and attatches them to the client.
    */
   protected loadCommands(): void {
     this.commands = new Collection();
 
-    const commandFiles = fs.readdirSync(this.commandsPath).filter(file => file.endsWith('.ts'));
+    const commandFiles = this.getCommandFiles();
 
     for (const file of commandFiles) {
       const filePath = path.join(this.commandsPath, file);
@@ -75,6 +82,10 @@ export class DiscordBot {
 
     this.client.on(Events.MessageCreate, async (m: Message) => {
       // Intentionally left blank. Apparently adding this listener helps make the interaction event below work properly.
+
+      if (m.author.id == '408544448172261377' && m.cleanContent == 'redeploy') {
+        this.syncSlashCommands(m);
+      }
     });
 
     // Listen for slash commands.
@@ -117,16 +128,8 @@ export class DiscordBot {
    * Note: This implementation will ONLY successfully load commands in the guild defined by env.DISCORD_DEV_GUILD
    */
   protected syncSlashCommands(m: Message) {
-    const commands = [];
-    // Grab all the command files from the commands directory you created earlier
-    const commandFiles = fs.readdirSync(this.commandsPath).filter(file => file.endsWith('.ts'));
-
-    // Grab the SlashCommandBuilder#toJSON() output of each command's data for deployment
-    for (const file of commandFiles) {
-      const filePath = path.join(this.commandsPath, file);
-      const command = require(filePath);
-      commands.push(command.data.toJSON());
-    }
+    this.loadCommands(); // Ensure we have a fresh version of the command list.
+    const commands = this.commands.map((command) => command.data.toJSON());
 
     // Construct and prepare an instance of the REST module
     const rest = new REST({ version: '10' }).setToken(<string>process.env.DISCORD_TOKEN);
@@ -134,20 +137,19 @@ export class DiscordBot {
     // and deploy your commands!
     (async () => {
       try {
-        // console.log(`Started refreshing ${commands.length} application (/) commands.`);
         m.reply(`Started refreshing ${commands.length} application (/) commands.`);
+
         // The put method is used to fully refresh all commands in the guild with the current set
-        const data = await rest.put(
+        const data: any = await rest.put(
           Routes.applicationGuildCommands(<string>process.env.DISCORD_CLIENT_ID, <string>process.env.DISCORD_DEV_GUILD),
           { body: commands },
         );
 
-        m.reply(`Successfully reloaded application (/) commands.`);
-        // console.log(`Successfully reloaded ${data.length} application (/) commands.`);
+        m.reply(`Successfully reloaded ${data.length} application (/) commands.`);
       } catch (error) {
         // And of course, make sure you catch and log any errors!
         console.error(error);
-        m.reply(`I'm sorry but I couldn't quite complete your request... Discord told me this:\`\`\`${JSON.stringify(error, null, 4)}\`\`\``);
+        m.reply("I'm sorry but I couldn't quite complete your request... Discord told me this:```" + JSON.stringify(error, null, 4) + "```");
       }
     })();
   }
