@@ -89,15 +89,16 @@ export class DiscordBot {
     this.client.on(Events.MessageCreate, async (m: Message) => {
       // Intentionally left blank. Apparently adding this listener helps make the interaction event below work properly.
 
+      // TODO: Basically delete this if statement, once the bot is more developed.
       if (m.author.id == '408544448172261377') {
         switch (m.cleanContent) {
-          case 'redeploy':
+          case '!redeploy':
             this.syncSlashCommands(m);
             break;
-          case 'slshutdown':
+          case '!slshutdown':
             this.serviceContainer.getSlBot()?.shutdown();
             break;
-          case 'slrun':
+          case '!slrun':
             this.serviceContainer.getSlBot()?.run();
             break;
 
