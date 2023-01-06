@@ -1,5 +1,6 @@
 import { Channel } from 'diagnostics_channel';
 import { Client, Collection, Events, GatewayIntentBits, Interaction, Message, REST, Routes, TextChannel } from 'discord.js';
+import { ServiceContainer } from '../classes/ServiceContainer';
 
 import fs from 'fs';
 import path from 'path';
@@ -8,14 +9,15 @@ import path from 'path';
  * Bootstraps the Discord bot
  */
 export class DiscordBot {
+  protected serviceContainer: ServiceContainer;
+
   protected client: Client;
 
   protected commandsPath: string;
   protected commands: Collection<string, any> = new Collection();
 
-  constructor() {
-    // Set the path of the commands folder.
-    this.commandsPath = path.join(__dirname, 'commands');
+  constructor(serviceContainer: ServiceContainer) {
+    this.serviceContainer = serviceContainer;
 
     this.client = new Client({
       intents: [
@@ -24,6 +26,10 @@ export class DiscordBot {
         GatewayIntentBits.MessageContent,
       ]
     });
+
+    // Set the path of the commands folder.
+    this.commandsPath = path.join(__dirname, 'commands');
+
   }
 
   /**
@@ -83,8 +89,21 @@ export class DiscordBot {
     this.client.on(Events.MessageCreate, async (m: Message) => {
       // Intentionally left blank. Apparently adding this listener helps make the interaction event below work properly.
 
-      if (m.author.id == '408544448172261377' && m.cleanContent == 'redeploy') {
-        this.syncSlashCommands(m);
+      if (m.author.id == '408544448172261377') {
+        switch (m.cleanContent) {
+          case 'redeploy':
+            this.syncSlashCommands(m);
+            break;
+          case 'slshutdown':
+            this.serviceContainer.getSlBot()?.shutdown();
+            break;
+          case 'slrun':
+            this.serviceContainer.getSlBot()?.run();
+            break;
+
+          default:
+            break;
+        }
       }
     });
 

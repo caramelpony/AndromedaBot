@@ -1,4 +1,6 @@
-import { Bot, BotOptionFlags, LoginParameters, Vector3, InstantMessageEvent, ChatSourceType, InstantMessageEventFlags } from "@caspertech/node-metaverse";
+import { Bot, BotOptionFlags, LoginParameters, Vector3, InstantMessageEvent, ChatSourceType, InstantMessageEventFlags, UUID } from "@caspertech/node-metaverse";
+import { TextChannel } from "discord.js";
+import { ServiceContainer } from "../classes/ServiceContainer";
 
 /**
  * Configures the SL bot and offers an API to interact with it.
@@ -9,10 +11,13 @@ export class SLBot {
   protected bot: Bot;
   protected loginParameters: LoginParameters;
 
+  protected serviceContainer: ServiceContainer;
   /**
    * Construct the bot.
    */
-  constructor() {
+  constructor(serviceContainer: ServiceContainer) {
+    this.serviceContainer = serviceContainer;
+
     this.loginParameters = new LoginParameters();
     this.loginParameters.firstName = <string>process.env.SL_FIRSTNAME;
     this.loginParameters.lastName = <string>process.env.SL_LASTNAME;
@@ -21,19 +26,34 @@ export class SLBot {
 
     const options = BotOptionFlags.LiteObjectStore | BotOptionFlags.StoreMyAttachmentsOnly;
     this.bot = new Bot(this.loginParameters, options);
+
+    this.registerEvents();
   }
 
   /**
    * Runs an instance of the bot.
    */
   public async run(): Promise<void> {
-
     this.bot.stayPut(true, 'Zephyr Heights', new Vector3([24, 75, 12])); // Attempt to continuously teleport to this spot.
     await this.login();
   }
 
+  /**
+   * Clean shutdown of the Bot.
+   */
+  public async shutdown() {
+    this.bot.close();
+  }
+
   public getBot(): Bot {
     return this.bot;
+  }
+
+  /**
+   * Register the event listeners
+   */
+  protected registerEvents(): void {
+    this.bot.clientEvents.onInstantMessage.subscribe(this.onInstantMessage.bind(this));
   }
 
   /**
@@ -46,11 +66,6 @@ export class SLBot {
       this.bot.connectToSim();
     }).then(async () => {
       console.log("Connected");
-      this.bot.clientEvents.onInstantMessage.subscribe(this.onInstantMessage.bind(this));
-
-      // Notify Admins that she's workin!
-      await this.bot.clientCommands.comms.sendInstantMessage('32289168-0fbe-40cc-9b71-b162f660564a', "Hey Dashie, I'm online~");
-      await this.bot.clientCommands.comms.sendInstantMessage('72461b84-5ee8-45b1-84f3-3f829e8fab88', "Hey Caramel, I'm online~");
     }).catch((error) => {
       console.error(error);
     });
@@ -58,9 +73,14 @@ export class SLBot {
 
   async onInstantMessage(event: InstantMessageEvent): Promise<void> {
     if (event.source === ChatSourceType.Agent) {
-      if (!(event.flags & InstantMessageEventFlags.startTyping || event.flags & InstantMessageEventFlags.finishTyping)) {
 
-        // sendInstantMessage will send it instantly
+      if (!(event.flags & InstantMessageEventFlags.startTyping || event.flags & InstantMessageEventFlags.finishTyping)) {
+        const channel: TextChannel = await this.serviceContainer.getDBot()?.getClient().channels.fetch('1058907686399397918') as TextChannel;
+
+        const msg = `New Message\nFrom: ${event.fromName.toString()}(${event.from.toString()})\n\`\`\`${event.message.toString()}\`\`\``;
+        // channel.send(JSON.stringify(event, null, 2));
+        channel.send(msg);
+
         await this.bot.clientCommands.comms.sendInstantMessage(event.from, 'This is a bot account and cannot respond.');
       }
     }
