@@ -17,6 +17,11 @@
 - Fix RegionStats.ts
 - - LINE: 11, "Property 'currentRegion' does not exist on type '() => Bot'."
 
+# Running the bot
+
+To run the bot, use `npm run dev`
+You may also use the visual studio code debugger to run the `TS-Node Debug` script. This will allow you to add breakpoints to the code.
+
 # Adding Commands
 
 ## Discord
