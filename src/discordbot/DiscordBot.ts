@@ -24,7 +24,7 @@ export class DiscordBot {
         GatewayIntentBits.Guilds,
         GatewayIntentBits.GuildMessages,
         GatewayIntentBits.MessageContent,
-      ]
+      ],
     });
 
     // Set the path of the commands folder.

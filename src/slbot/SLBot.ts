@@ -1,10 +1,15 @@
+import axios from "axios";
+import * as cheerio from "cheerio";
+import discordEscape from "discord-escape";
 import { Command } from "./classes/Command";
-import { Bot, BotOptionFlags, LoginParameters, Vector3, InstantMessageEvent, ChatSourceType, InstantMessageEventFlags, UUID } from "@caspertech/node-metaverse";
+import { Bot, BotOptionFlags, LoginParameters, Vector3, InstantMessageEvent, ChatSourceType, InstantMessageEventFlags, UUID, ChatEvent } from "@caspertech/node-metaverse";
 import { TextChannel } from "discord.js";
 import { ServiceContainer } from "../classes/ServiceContainer";
 
 import fs from 'fs';
 import path from 'path';
+import { ChatType } from "@caspertech/node-metaverse/dist/lib/enums/ChatType";
+import { channel } from "diagnostics_channel";
 
 /**
  * Configures the SL bot and offers an API to interact with it.
@@ -68,6 +73,7 @@ export class SLBot {
    */
   protected registerEvents(): void {
     this.bot.clientEvents.onInstantMessage.subscribe(this.onInstantMessage.bind(this));
+    this.bot.clientEvents.onNearbyChat.subscribe(this.onNearbyChat.bind(this));
   }
 
   /**
@@ -139,6 +145,41 @@ export class SLBot {
         } else {
           await this.bot.clientCommands.comms.sendInstantMessage(event.from, 'This is a bot account and cannot respond.');
         };
+
+      }
+    }
+  }
+
+  protected async onNearbyChat(event: ChatEvent) {
+    if (event.sourceType === ChatSourceType.Agent) {
+
+      // Ignore StartTyping and EndTyping events. They are irrelevant to responding to messages.
+      if (!(event.chatType === ChatType.StartTyping || event.chatType === ChatType.StopTyping)) {
+
+        // TODO: Please CACHE THIS information. It sucks manually requesting profile pictures all the time.
+        const userProfile = await axios.get(`https://world.secondlife.com/resident/${event.from.toString()}`)
+        const $ = cheerio.load(userProfile.data);
+        const profileImageUUID = $('meta[name = "imageid"]').attr('content');
+        const profileImageURI = `https://picture-service.secondlife.com/${profileImageUUID}/256x192.jpg`
+
+        const dChannel: TextChannel = await this.serviceContainer.getDBot()?.getClient().channels.fetch('1058907686399397918') as TextChannel;
+        try {
+          const webhooks = await dChannel.fetchWebhooks();
+          let webhook = webhooks.find(wh => wh.token);
+
+          if (!webhook) {
+            console.log('No webhook was found that I can use! Creating one');
+            webhook = await dChannel.createWebhook({ name: 'Andromeda Webhook' });
+          }
+
+          await webhook.send({
+            content: discordEscape(event.message.toString()),
+            username: event.fromName.toString(),
+            avatarURL: profileImageURI,
+          });
+        } catch (error) {
+          console.error('Error trying to send a message: ', error);
+        }
 
       }
     }
