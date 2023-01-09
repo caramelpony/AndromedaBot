@@ -9,12 +9,12 @@ default
     state_entry()
     {
         originalObjectName = llGetObjectName();
-        listenHandle = llListen(-10834, "", llGetOwner(), "");
+        listenHandle = llListen(10834, "", llGetOwner(), "");
     }
 
     listen(integer channel, string name, key id, string message)
     {
-        if (channel == -10834 && id == llGetOwner()) {
+        if (channel == 10834 && id == llGetOwner()) {
            list msgList = llParseString2List(message, [":"], [""]); // Using a colon as a separator as this character cannot exist in a discord username.
 
             // Return early if the length is less than two. This will indicate that there's a missing message or username.
