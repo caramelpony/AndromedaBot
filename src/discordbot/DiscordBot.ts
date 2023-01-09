@@ -1,9 +1,9 @@
-import { Channel } from 'diagnostics_channel';
 import { Client, Collection, Events, GatewayIntentBits, Interaction, Message, REST, Routes, TextChannel } from 'discord.js';
 import { ServiceContainer } from '../classes/ServiceContainer';
 
 import fs from 'fs';
 import path from 'path';
+import { ChatType } from '@caspertech/node-metaverse/dist/lib/enums/ChatType';
 
 /**
  * Bootstraps the Discord bot
@@ -89,17 +89,29 @@ export class DiscordBot {
     this.client.on(Events.MessageCreate, async (m: Message) => {
       // Intentionally left blank. Apparently adding this listener helps make the interaction event below work properly.
 
+      if (m.author.bot) return;
+
+      if (m.channel.id === "1058907686399397918") {
+        const msg: string = ":" + m.author.tag + ":" + m.cleanContent;
+        console.log(msg);
+
+        await this.serviceContainer.getSlBot().getBot().clientCommands.comms.nearbyChat(msg, ChatType.Normal, 10834);
+      }
+
       // TODO: Basically delete this if statement, once the bot is more developed.
       if (m.author.id == '408544448172261377') {
         switch (m.cleanContent) {
           case '!redeploy':
             this.syncSlashCommands(m);
+            return;
             break;
           case '!slshutdown':
-            this.serviceContainer.getSlBot()?.shutdown();
+            this.serviceContainer.getSlBot().shutdown();
+            return;
             break;
           case '!slrun':
-            this.serviceContainer.getSlBot()?.run();
+            this.serviceContainer.getSlBot().run();
+            return;
             break;
 
           default:
@@ -107,7 +119,6 @@ export class DiscordBot {
         }
       }
     });
-
     // Listen for slash commands.
     this.client.on(Events.InteractionCreate, this.handleSlashCommand.bind(this));
 
