@@ -6,8 +6,8 @@ import { SLBot } from "../slbot/SLBot";
  * This class should be injected into services to allow basic levels of cross communication.
  */
 export class ServiceContainer {
-  protected slBot?: SLBot;
-  protected discordBot?: DiscordBot;
+  protected slBot!: SLBot;
+  protected discordBot!: DiscordBot;
 
   /**
    * Set the SL bot instance
@@ -15,6 +15,9 @@ export class ServiceContainer {
    * @returns
    */
   public setSlBot(slBot: SLBot) {
+    if (this.slBot != undefined) {
+      throw new Error("SL Bot can not be redefined");
+    }
     this.slBot = slBot;
   }
   /**
@@ -23,6 +26,9 @@ export class ServiceContainer {
    * @returns
    */
   public setDiscordBot(discordBot: DiscordBot) {
+    if (this.discordBot != undefined) {
+      throw new Error("SL Bot can not be redefined");
+    }
     this.discordBot = discordBot;
   }
 
@@ -31,6 +37,9 @@ export class ServiceContainer {
    * @returns {SLBot}
    */
   public getSlBot() {
+    if (this.slBot == undefined) {
+      throw new Error("SL Bot was not defined");
+    }
     return this.slBot;
   }
 
@@ -39,6 +48,9 @@ export class ServiceContainer {
    * @returns @returns {DiscordBot}
    */
   public getDBot() {
+    if (this.discordBot == undefined) {
+      throw new Error("SL Bot was not defined");
+    }
     return this.discordBot;
   }
 }
