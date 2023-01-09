@@ -136,7 +136,7 @@ export class SLBot {
 
         // Forwards the message to Discord
         const channel: TextChannel = await this.serviceContainer.getDBot()?.getClient().channels.fetch('1058907686399397918') as TextChannel;
-        const dMsg = `New Message\nFrom: ${event.fromName.toString()}(${event.from.toString()})\n\`\`\`${event.message.toString()}\`\`\``;
+        const dMsg = `Instant Message\nFrom: ${event.fromName.toString()}(${event.from.toString()})\n\`\`\`${event.message.toString()}\`\`\``;
         channel.send(dMsg);
 
         // If the sender is a bot owner, run the command handler
